@@ -1,132 +1,102 @@
-(function () {
-    "use strict";
-    var availableLetters, words, guessInput, guess, guessButton, lettersGuessed, lettersMatched, output, man, letters, lives, currentWord, numLettersMatched, messages;
 
-    function setup() {
-        /* start config options */
-        availableLetters = "abcdefghijklmnopqrstuvwxyz";
-        lives = 5;
-        words = ["cat", "dog", "cow", "reindeer"];
-        messages = {
-            win: 'You win!',
-            lose: 'Game over!',
-            guessed: ' already guessed, please try again...',
-            validLetter: 'Please enter a letter from A-Z'
-        };
-        /* end config options */
+var Hangman = (function () {
+    'use strict';
 
-        lettersGuessed = lettersMatched = '';
-        numLettersMatched = 0;
-
-        /* choose a word */
-        currentWord = words[Math.floor(Math.random() * words.length)];
-
-        /* make #man and #output blank, create vars for later access */
-        output = document.getElementById("output");
-        man = document.getElementById("man");
-        guessInput = document.getElementById("letter");
-
-        man.innerHTML = 'You have ' + lives + ' lives remaining';
-        output.innerHTML = '';
-
-        document.getElementById("letter").value = '';
-
-        /* make sure guess button is enabled */
-        guessButton = document.getElementById("guess");
-        guessInput.style.display = 'inline';
-        guessButton.style.display = 'inline';
-
-        /* set up display of letters in current word */
-        letters = document.getElementById("letters");
-        letters.innerHTML = '<li class="current-word">Current word:</li>';
-
-        var letter, i;
-        for (i = 0; i < currentWord.length; i++) {
-            letter = '<li class="letter letter' + currentWord.charAt(i).toUpperCase() + '">' + currentWord.charAt(i).toUpperCase() + '</li>';
-            letters.insertAdjacentHTML('beforeend', letter);
-        }
+    /**
+     @param {string} elId 
+     */
+    function Hangman(elId) {
+        
+        this.elId       = elId;
+        
+        this.words      = [
+            'REINDEERS', 'CHRISTMASTREE', 'SANTACLAUS', 'ORNAMENTS',
+            'ELVES', 'MISTLETOE', 'GINGERBREAD', 'CANDYCANE', 
+        ];
     }
 
-    function gameOver(win) {
-        if (win) {
-            output.innerHTML = messages.win;
-            output.classList.add('win');
-        } else {
-            output.innerHTML = messages.lose;
-            output.classList.add('error');
-        }
-
-        guessInput.style.display = guessButton.style.display = 'none';
-        guessInput.value = '';
-    }
-
-    /* Start game - should ideally check for existing functions attached to window.onload */
-    window.onload = setup();
-
-    /* buttons */
-    document.getElementById("restart").onclick = setup;
-
-    /* reset letter to guess on click */
-    guessInput.onclick = function () {
-        this.value = '';
+    
+    Hangman.prototype.reset = function () {
+        
+        this.STOPPED        = false;
+        this.MISTAKES       = 0;
+        this.GUESSES        = [];
+        
+        this.WORD           = this.words[Math.floor(Math.random() * this.words.length)];
+        
+        this.hideElementByClass('h');
+        this.showElementByIdWithContent(this.elId + "_guessbox", null);
+        this.showElementByIdWithContent(this.elId + "_word", this.getGuessedfWord());
     };
 
-    /* main guess function when user clicks #guess */
-    document.getElementById('hangman').onsubmit = function (e) {
-        if (e.preventDefault) e.preventDefault();
-        output.innerHTML = '';
-        output.classList.remove('error', 'warning');
-        guess = guessInput.value;
+    /**
+     @param {char} letter 
+     */
+    Hangman.prototype.guess = function (letter) {
+        letter = letter.charAt(0).toUpperCase();
 
-        /* does guess have a value? if yes continue, if no, error */
-        if (guess) {
-            /* is guess a valid letter? if so carry on, else error */
-            if (availableLetters.indexOf(guess) > -1) {
-                /* has it been guessed (missed or matched) already? if so, abandon & add notice */
-                if ((lettersMatched && lettersMatched.indexOf(guess) > -1) || (lettersGuessed && lettersGuessed.indexOf(guess) > -1)) {
-                    output.innerHTML = '"' + guess.toUpperCase() + '"' + messages.guessed;
-                    output.classList.add("warning");
-                }
-                /* does guess exist in current word? if so, add to letters already matched, if final letter added, game over with win message */
-                else if (currentWord.indexOf(guess) > -1) {
-                    var lettersToShow;
-                    lettersToShow = document.querySelectorAll(".letter" + guess.toUpperCase());
-
-                    for (var i = 0; i < lettersToShow.length; i++) {
-                        lettersToShow[i].classList.add("correct");
-                    }
-
-                    /* check to see if letter appears multiple times */
-                    for (var j = 0; j < currentWord.length; j++) {
-                        if (currentWord.charAt(j) === guess) {
-                            numLettersMatched += 1;
-                        }
-                    }
-
-                    lettersMatched += guess;
-                    if (numLettersMatched === currentWord.length) {
-                        gameOver(true);
-                    }
-                }
-                /* guess doesn't exist in current word and hasn't been guessed before, add to lettersGuessed, reduce lives & update user */
-                else {
-                    lettersGuessed += guess;
-                    lives--;
-                    man.innerHTML = 'You have ' + lives + ' lives remaining';
-                    if (lives === 0) gameOver();
-                }
-            }
-            /* not a valid letter, error */
-            else {
-                output.classList.add('error');
-                output.innerHTML = messages.validLetter;
-            }
+        
+        if (this.STOPPED || this.GUESSES.indexOf(letter) > -1) {
+            
+            return;
         }
-        /* no letter entered, error */
-        else {
-            output.classList.add('error');
-            output.innerHTML = messages.validLetter;
+
+        
+        this.GUESSES.push(letter);
+       
+        this.showElementByIdWithContent(this.elId + "_word", this.getGuessedfWord());
+        this.showElementByIdWithContent(this.elId + "_guesses", this.GUESSES.join(''));
+
+        
+        if (this.WORD.indexOf(letter) < 0) {
+            
+            this.MISTAKES++;
+            
+            this.showElementByIdWithContent(this.elId + "_" + this.MISTAKES, null);
+            
+            if (this.MISTAKES === 6) {
+                this.showElementByIdWithContent(this.elId + "_end", "GAME OVER!<br/>The word was: " + this.WORD);
+                this.STOPPED = true;
+            }
+        } else if (this.WORD.indexOf(this.getGuessedfWord()) !== -1) {
+            
+            this.showElementByIdWithContent(this.elId + "_end", "You made it!<br/>The word was: " + this.WORD);
+            this.STOPPED = true;
         }
-        return false;
     };
+
+    /**
+     @param {string} elId     
+    @param {HTML} content 
+     */
+    Hangman.prototype.showElementByIdWithContent = function (elId, content) {
+        if (content !== null) {
+            document.getElementById(elId).innerHTML = content;
+        }
+        document.getElementById(elId).style.opacity = 1;
+    };
+
+    /**
+     @param {string} elClass 
+     */
+    Hangman.prototype.hideElementByClass = function (elClass) {
+        var elements = document.getElementsByClassName(elClass), i;
+        for (i = 0; i < elements.length; i++) {
+            elements[i].style.opacity = 0;
+        }
+    };
+
+    
+    Hangman.prototype.getGuessedfWord = function () {
+        var result = "", i;
+        for (i = 0; i < this.WORD.length; i++) {
+            
+            result += (this.GUESSES.indexOf(this.WORD[i]) > -1) ?
+                    this.WORD[i] : "_";
+        }
+        return result;
+    };
+
+    
+    return new Hangman('hangm');    
 }());
