@@ -60,7 +60,7 @@ var Hangman = (function () {
             }
         } else if (this.WORD.indexOf(this.getGuessedfWord()) !== -1) {
             
-            this.showElementByIdWithContent(this.elId + "_end", "You made it!<br/>The word was: " + this.WORD);
+            this.showElementByIdWithContent(this.elId + "_end", "You Won!<br/>The word was: " + this.WORD);
             this.STOPPED = true;
         }
     };
