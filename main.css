@@ -100,3 +100,7 @@ section#hangman {
     bottom: 150px;
     left: 130px;
 }
+
+.button{
+    background-color: green;
+}
